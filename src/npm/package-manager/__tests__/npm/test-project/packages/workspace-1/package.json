@@ -1,0 +1,9 @@
+{
+  "name": "@xeel-dev/npm-test-workspace-1",
+  "private": true,
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "@types/node": "14"
+  }
+}

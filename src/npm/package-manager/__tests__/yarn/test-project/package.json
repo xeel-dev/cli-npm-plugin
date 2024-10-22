@@ -1,0 +1,13 @@
+{
+  "name": "@xeel-dev/yarn-test",
+  "private": true,
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "@types/node": "20"
+  },
+  "packageManager": "yarn@3.6.0",
+  "workspaces": [
+    "packages/*"
+  ]
+}

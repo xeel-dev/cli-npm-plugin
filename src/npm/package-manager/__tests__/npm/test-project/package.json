@@ -1,0 +1,12 @@
+{
+  "name": "@xeel-dev/npm-test",
+  "private": true,
+  "version": "1.0.0",
+  "main": "index.js",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "20"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@xeel-dev/yarn-test-workspace-1",
+  "description": "Workspace 1",
+  "private": true,
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "@types/node": "14"
+  }
+}
