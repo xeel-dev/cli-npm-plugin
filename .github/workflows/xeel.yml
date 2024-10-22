@@ -25,7 +25,9 @@ jobs:
           node-version-file: .nvmrc
           cache: 'pnpm'
       - run: pnpm install
+      - run: pnpm build
       - run: pnpm add @xeel-dev/cli
+      - run: npx xeel plugins link
       - run: node ./src/npm/package-manager/__tests__/run-e2e-setup.js
       - run: npx xeel dependency-debt report -r "$GITHUB_REPOSITORY_ID" --auth github --organization "x::org:64jlQszyh97h4u4d0IGc7J"
         env:
