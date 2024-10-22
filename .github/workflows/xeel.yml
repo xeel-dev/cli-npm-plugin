@@ -24,8 +24,6 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: 'pnpm'
-      - name: Authenticate with private NPM package
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
       - run: pnpm install
       - run: pnpm add @xeel-dev/cli
       - run: node ./src/npm/package-manager/__tests__/run-e2e-setup.js

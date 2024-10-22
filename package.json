@@ -8,9 +8,6 @@
     "type": "git",
     "url": "git+https://github.com/xeel-dev/cli-npm-plugin.git"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
   "maintainers": [
     {
       "email": "felix@xeel.dev",
@@ -40,7 +37,7 @@
     "@oclif/prettier-config": "^0.2.1",
     "@types/node": "20",
     "@vitest/coverage-v8": "^2.1.2",
-    "@xeel-dev/cli": "^0.0.11",
+    "@xeel-dev/cli": "^0.0.12",
     "prettier": "^3.3.3",
     "prettier-plugin-organize-imports": "^4.1.0",
     "shx": "^0.3.4",

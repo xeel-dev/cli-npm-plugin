@@ -25,8 +25,8 @@ importers:
         specifier: ^2.1.2
         version: 2.1.2(vitest@2.1.2(@types/node@20.16.11))
       '@xeel-dev/cli':
-        specifier: ^0.0.11
-        version: 0.0.11
+        specifier: ^0.0.12
+        version: 0.0.12
       prettier:
         specifier: ^3.3.3
         version: 3.3.3
@@ -563,13 +563,13 @@ packages:
   '@vitest/utils@2.1.2':
     resolution: {integrity: sha512-zMO2KdYy6mx56btx9JvAqAZ6EyS3g49krMPPrgOp1yxGZiA93HumGk+bZ5jIZtOg5/VBYl5eBmGRQHqq4FG6uQ==}
 
-  '@xeel-dev/cli-npm-plugin@0.0.4':
-    resolution: {integrity: sha512-zeQlV5rIkp8/r2ekavIXJr6Gug1NtaE22+ZuHyLz1VoVP2angIPyy8fgy4A6OUM2UgKSS2qiGFQE9L9GpMvl4A==, tarball: https://npm.pkg.github.com/download/@xeel-dev/cli-npm-plugin/0.0.4/969fb0c2a783fe32de3bbb2e05d7695fdacb313a}
+  '@xeel-dev/cli-npm-plugin@0.0.5':
+    resolution: {integrity: sha512-qeC9ocdTHNj0aVP7FGgG3ZTlwFKmi8Nh9L+4R3tP+XpTrfZv08jDotWymCc3D8FYQAD974RSLr3hxfBcRTNvAg==, tarball: https://npm.pkg.github.com/download/@xeel-dev/cli-npm-plugin/0.0.5/0946259d5e7241e29c142897a823d4dc9d47e946}
     engines: {node: '20'}
     hasBin: true
 
-  '@xeel-dev/cli@0.0.11':
-    resolution: {integrity: sha512-ESbEzMk4RePiNu01kK7Cvezxxz4d9BsBN3ky3OIqirUWqSJm3F18ji4elqXYbMSoYEfDAOKyZ2FStVBhWX/2Zw==, tarball: https://npm.pkg.github.com/download/@xeel-dev/cli/0.0.11/10f6b2ef7b17e1e55ce5e560f70333014ef2c7bf}
+  '@xeel-dev/cli@0.0.12':
+    resolution: {integrity: sha512-J6z21lXVZW07rWNbVYkr/k4yR4kSN/WHOKfDEj1465vBCx1nKkF5T+Bw87/kqBfoQQSVoZ7AVC+Eq8dPxgeuKA==, tarball: https://npm.pkg.github.com/download/@xeel-dev/cli/0.0.12/d5a667c2f59dbae241a271aca1fe90a1f0a4663c}
     engines: {node: '20'}
     hasBin: true
 
@@ -1803,19 +1803,19 @@ snapshots:
       loupe: 3.1.2
       tinyrainbow: 1.2.0
 
-  '@xeel-dev/cli-npm-plugin@0.0.4':
+  '@xeel-dev/cli-npm-plugin@0.0.5':
     dependencies:
       '@actions/exec': 1.1.1
       '@oclif/core': 4.0.27
 
-  '@xeel-dev/cli@0.0.11':
+  '@xeel-dev/cli@0.0.12':
     dependencies:
       '@actions/core': 1.11.1
       '@actions/exec': 1.1.1
       '@oclif/core': 4.0.27
       '@oclif/plugin-help': 6.2.14
       '@oclif/plugin-plugins': 5.4.14
-      '@xeel-dev/cli-npm-plugin': 0.0.4
+      '@xeel-dev/cli-npm-plugin': 0.0.5
       chalk: 5.3.0
       graphql: 16.9.0
       graphql-request: 7.1.0(graphql@16.9.0)
