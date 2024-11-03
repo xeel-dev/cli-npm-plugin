@@ -2,6 +2,7 @@ import type {
   Dependency,
   EcosystemSupport,
   Project,
+  Release,
   RootProject,
 } from '@xeel-dev/cli/ecosystem-support';
 import { readdir } from 'fs/promises';
@@ -47,6 +48,14 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
     return support.findWorkspaces(directoryPath);
   }
 
+  private isValidVersion(version: Release): boolean {
+    return (
+      version.date instanceof Date &&
+      typeof version.isDeprecated === 'boolean' &&
+      typeof version.version === 'string'
+    );
+  }
+
   async listOutdatedDependencies(
     project: NpmProject,
   ): Promise<NpmDependency[]> {
@@ -54,7 +63,21 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
     if (!support) {
       throw new Error(`Unsupported package manager: ${project.packageManager}`);
     }
-    return support.listOutdatedDependencies(project);
+    const outdated = await support.listOutdatedDependencies(project);
+    // Validate that all dependencies have all required fields, remove any that don't,
+    // and return the result
+    const validatedOutdated = outdated.filter((dependency: NpmDependency) => {
+      const isValid =
+        this.isValidVersion(dependency.latest) &&
+        this.isValidVersion(dependency.current) &&
+        dependency.name &&
+        dependency.type;
+      if (!isValid) {
+        console.warn(`Invalid dependency: ${JSON.stringify(dependency)}`);
+      }
+      return isValid;
+    });
+    return validatedOutdated;
   }
 
   async findProjects(directoryPath = process.cwd()): Promise<NpmProject[]> {
@@ -62,9 +85,17 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
     const projects: NpmProject[] = [];
     for (const entry of entries) {
       if (entry.isFile() && LOCKFILE_NAMES.includes(entry.name)) {
-        // If there's a lockfile here, there should also be a package.json
+        // If there's a lockfile here, there may also be a package.json
         // load it in order to find the project's name
         const packageJsonPath = `${directoryPath}/package.json`;
+        // Check if the entries contains the package.json file
+        if (!entries.some((e) => e.isFile() && e.name === 'package.json')) {
+          console.warn(
+            `Lockfile found at ${directoryPath} but no package.json found`,
+          );
+          continue;
+        }
+
         const { name, description } = JSON.parse(
           readFileSync(packageJsonPath, 'utf-8'),
         );

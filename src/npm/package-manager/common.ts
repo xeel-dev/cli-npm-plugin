@@ -1,4 +1,4 @@
-import type { Project } from '@xeel-dev/cli/ecosystem-support';
+import type { DependencyType, Project } from '@xeel-dev/cli/ecosystem-support';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -13,5 +13,17 @@ export function findDescription(workspace: Project<'NPM'>) {
     }
   } finally {
     return workspace;
+  }
+}
+
+export function getDependencyType(typeString: string): DependencyType {
+  switch (typeString) {
+    case 'dependencies':
+      return 'PROD';
+    case 'devDependencies':
+      return 'DEV';
+    default:
+      // We explicitly do not support optional, and peer dependencies
+      throw new Error(`Unsupported dependency type: ${typeString}`);
   }
 }

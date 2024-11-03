@@ -1,7 +1,7 @@
 import type { Project } from '@xeel-dev/cli/ecosystem-support';
 import { exec, ExecError } from '../../utils/exec.js';
 import { NpmDependency, PackageManagerSupport } from '../index.js';
-import { findDescription } from './common.js';
+import { findDescription, getDependencyType } from './common.js';
 
 export class PnpmPackageManagerSupport implements PackageManagerSupport {
   public packageManager = 'pnpm' as const;
@@ -71,6 +71,13 @@ export class PnpmPackageManagerSupport implements PackageManagerSupport {
         const { stdout } = await exec(`pnpm info ${name} --json`);
         this.packageVersionToDateCache[name] = JSON.parse(stdout).time;
       }
+      let type;
+      try {
+        type = getDependencyType(outdated[name].dependencyType);
+      } catch (e) {
+        continue;
+      }
+
       dependencies.push({
         name,
         current: {
@@ -88,8 +95,7 @@ export class PnpmPackageManagerSupport implements PackageManagerSupport {
           ),
         },
         ecosystem: 'NPM',
-        type:
-          outdated[name].dependencyType === 'devDependencies' ? 'DEV' : 'PROD',
+        type,
       });
     }
 
