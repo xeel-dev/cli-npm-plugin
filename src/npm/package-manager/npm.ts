@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { sep } from 'node:path';
 import { exec, ExecError } from '../../utils/exec.js';
 import { NpmDependency, PackageManagerSupport } from '../index.js';
-import { findDescription } from './common.js';
+import { findDescription, getDependencyType } from './common.js';
 
 interface NpmOutdatedVersion {
   current: string;
@@ -49,10 +49,16 @@ export class NpmPackageManagerSupport implements PackageManagerSupport {
 
   async listOutdatedDependencies(project: Project<'NPM'>) {
     const packagePath = `${project.path}/package.json`;
-    const prodDependencies: Record<string, DependencyType> = {};
+    const dependencyToType: Record<string, DependencyType> = {};
     const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
-    for (const dependencyName of Object.keys(packageJson.dependencies ?? [])) {
-      prodDependencies[dependencyName] = 'PROD';
+    const supportedDependencies = ['dependencies', 'devDependencies'];
+    for (const type of supportedDependencies) {
+      const dependencies = packageJson[type];
+      if (dependencies) {
+        for (const dependency of Object.keys(dependencies)) {
+          dependencyToType[dependency] = getDependencyType(type);
+        }
+      }
     }
 
     const dependencies: NpmDependency[] = [];
@@ -83,6 +89,10 @@ export class NpmPackageManagerSupport implements PackageManagerSupport {
             continue;
           }
         }
+        const type = dependencyToType[name];
+        if (!type) {
+          continue;
+        }
         dependencies.push({
           name,
           ecosystem: 'NPM',
@@ -100,7 +110,7 @@ export class NpmPackageManagerSupport implements PackageManagerSupport {
               this.packageVersionToDateCache[name][version.latest],
             ),
           },
-          type: prodDependencies[name] || 'DEV',
+          type,
         });
       }
     }

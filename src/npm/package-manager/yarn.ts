@@ -2,7 +2,7 @@ import type { Project } from '@xeel-dev/cli/ecosystem-support';
 import { resolve } from 'node:path';
 import { exec, ExecError } from '../../utils/exec.js';
 import { NpmDependency, PackageManagerSupport } from '../index.js';
-import { findDescription } from './common.js';
+import { findDescription, getDependencyType } from './common.js';
 
 export class YarnPackageManagerSupport implements PackageManagerSupport {
   public packageManager = 'yarn' as const;
@@ -106,10 +106,16 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
         this.packageDeprecationCache[name] =
           packageInfo.deprecated !== undefined;
       }
+      let type;
+      try {
+        type = getDependencyType(dependency.type);
+      } catch (e) {
+        continue;
+      }
       dependencies.push({
         name,
         ecosystem: 'NPM',
-        type: dependency.type === 'dependencies' ? 'PROD' : 'DEV',
+        type,
         current: {
           version: dependency.current,
           isDeprecated: false,
