@@ -104,12 +104,12 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
     );
     const dependencies: NpmDependency[] = [];
     try {
-      const outdatedOutput = stdout.toString().trim();
+      const outdatedOutput = stdout.toString();
       if (!outdatedOutput) {
         return dependencies;
       }
       // The outdated output may be multiple JSON objects, one per line, try to parse each
-      const lines = outdatedOutput.split('\n') ?? [];
+      const lines = outdatedOutput.split('\n');
       for (const line of lines) {
         let json = JSON.parse(line);
         if (!json) {
@@ -117,6 +117,7 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
         }
         let outdated;
         if (json.type === 'table') {
+          console.log('Yarn v1 detected…');
           // Yarn v1
           const { head, body } = json.data;
           outdated = [];
@@ -191,6 +192,7 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
         }
       }
     } catch (error) {
+      console.error('Error parsing yarn outdated output', error);
       if (exitCode !== 0) {
         if (!hasAttemptedInstall) {
           await this.installOutdatedPlugin(project.path);
