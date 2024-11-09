@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { exec, ExecError } from '../../../../utils/exec.js';
+import { exec } from '../../../../utils/exec.js';
 import { YarnPackageManagerSupport } from '../../yarn.js';
 
 vi.mock(import('../../../../utils/exec.js'), async (importOriginal) => {
@@ -44,8 +44,27 @@ describe('YarnPackageManagerSupport', () => {
       });
 
       const yarnSupport = new YarnPackageManagerSupport();
-      await expect(yarnSupport.findWorkspaces('/path/to')).rejects.toThrow(
-        ExecError,
+      await expect(yarnSupport.findWorkspaces('/path/to')).resolves.toEqual([]);
+    });
+
+    it('should fall back to v1', async () => {
+      vi.mocked(exec).mockResolvedValue({
+        stdout: 'stdout error message',
+        stderr: 'stderr error message',
+        exitCode: 1,
+      });
+
+      const yarnSupport = new YarnPackageManagerSupport();
+      await expect(yarnSupport.findWorkspaces('/path/to')).resolves.toEqual([]);
+      await expect(exec).toHaveBeenCalledWith(
+        'yarn',
+        ['workspaces', 'list', '--json'],
+        { cwd: '/path/to' },
+      );
+      await expect(exec).toHaveBeenCalledWith(
+        'yarn',
+        ['workspaces', 'info', '--json'],
+        { cwd: '/path/to' },
       );
     });
   });

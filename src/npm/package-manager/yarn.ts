@@ -10,6 +10,38 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
     {};
   private packageDeprecationCache: Record<string, boolean> = {};
 
+  private async findWorkspacesYarnV1(
+    directoryPath: string,
+  ): Promise<Project<'NPM'>[]> {
+    const { exitCode, stdout, stderr } = await exec(
+      'yarn',
+      ['workspaces', 'info', '--json'],
+      {
+        cwd: directoryPath,
+      },
+    );
+    if (exitCode !== 0) {
+      console.warn('Could not find workspaces', { stdout, stderr });
+      return [];
+    }
+    const workspaces = JSON.parse(stdout.toString());
+    return Object.entries(workspaces)
+      .map(([name, workspace]) => {
+        const workspaceInfo = workspace as { location: string };
+        if (!workspaceInfo.location) {
+          return null;
+        }
+        const path = resolve(directoryPath, workspaceInfo.location);
+        const project = {
+          name,
+          ecosystem: 'NPM' as const,
+          path,
+        };
+        return findDescription(project);
+      })
+      .filter((workspace): workspace is Project<'NPM'> => workspace !== null);
+  }
+
   async findWorkspaces(directoryPath: string): Promise<Project<'NPM'>[]> {
     const { exitCode, stdout, stderr } = await exec(
       'yarn',
@@ -19,11 +51,9 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
       },
     );
     if (exitCode !== 0) {
-      throw new ExecError('yarn workspaces list --json', {
-        exitCode,
-        stdout,
-        stderr,
-      });
+      // Yarn v1 does not support `yarn workspaces list --json`, it
+      // uses a different command to list workspaces
+      return this.findWorkspacesYarnV1(directoryPath);
     }
     // The output is one JSON object per line
     const workspaces = stdout
