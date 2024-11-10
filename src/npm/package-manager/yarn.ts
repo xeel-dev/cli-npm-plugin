@@ -20,7 +20,10 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
       console.warn('Could not find workspaces', { directoryPath });
       return [];
     }
-    const workspaces = parseJSON(stdout.toString());
+    // Drop the first line, which is the version of the workspaces feature
+    // And the last line, which is the "✨ Done in 0.00s." line
+    const jsonOutput = stdout.toString().split('\n').slice(1, -1).join('\n');
+    const workspaces = parseJSON(jsonOutput);
     return Object.entries(workspaces)
       .map(([name, workspace]) => {
         const workspaceInfo = workspace as { location: string };
