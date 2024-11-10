@@ -53,6 +53,11 @@ describe('YarnPackageManagerSupport', () => {
         stderr: 'stderr error message',
         exitCode: 1,
       });
+      vi.mocked(exec).mockResolvedValueOnce({
+        stdout: '1.22.0',
+        stderr: 'stderr error message',
+        exitCode: 0,
+      });
 
       const yarnSupport = new YarnPackageManagerSupport();
       await expect(yarnSupport.findWorkspaces('/path/to')).resolves.toEqual([]);
