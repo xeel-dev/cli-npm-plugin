@@ -91,6 +91,45 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
     );
   }
 
+  private parseOutdatedOutput(outdatedOutput: string) {
+    for (const line of outdatedOutput.split('\n')) {
+      let json = JSON.parse(line);
+      if (!json) {
+        continue;
+      }
+      let outdated;
+      if (json.type === 'table') {
+        console.log('Yarn v1 detected…');
+        // Yarn v1
+        const { head, body } = json.data;
+        outdated = [];
+
+        // Create a mapping of column names to their indices
+        const columnIndices: { [key: string]: number } = {};
+        head.forEach((columnName: string, index: number) => {
+          columnIndices[columnName.toLowerCase()] = index;
+        });
+
+        // Iterate over each package in the body
+        for (const row of body) {
+          const name = row[columnIndices['package']];
+          const current = row[columnIndices['current']];
+          const latest = row[columnIndices['latest']];
+          const type = row[columnIndices['package type']];
+
+          outdated.push({ name, type, current, latest });
+        }
+      } else {
+        // Yarn v2+
+        outdated = json;
+      }
+      if (!outdated || !Array.isArray(outdated)) {
+        continue;
+      }
+      return outdated;
+    }
+    return [];
+  }
   async listOutdatedDependencies(
     project: Project<'NPM'>,
     hasAttemptedInstall?: boolean,
@@ -108,92 +147,52 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
       if (!outdatedOutput) {
         return dependencies;
       }
-      // The outdated output may be multiple JSON objects, one per line, try to parse each
-      const lines = outdatedOutput.split('\n');
-      for (const line of lines) {
-        let json = JSON.parse(line);
-        if (!json) {
+      const outdated = this.parseOutdatedOutput(outdatedOutput);
+      for (const dependency of outdated) {
+        if (!dependency.current) {
+          throw new Error(
+            'Could not find current version. Did you run `yarn install`?',
+          );
+        }
+        const name = dependency.name;
+        if (this.packageVersionToDateCache[name] === undefined) {
+          const { stdout } = await exec(
+            'yarn',
+            ['npm', 'info', name, '--json', '--fields', 'time'],
+            {
+              cwd: project.path,
+            },
+          );
+          const packageInfo = JSON.parse(stdout);
+          this.packageVersionToDateCache[name] = packageInfo.time;
+          this.packageDeprecationCache[name] =
+            packageInfo.deprecated !== undefined;
+        }
+        let type;
+        try {
+          type = getDependencyType(dependency.type);
+        } catch (e) {
           continue;
         }
-        let outdated;
-        if (json.type === 'table') {
-          console.log('Yarn v1 detected…');
-          // Yarn v1
-          const { head, body } = json.data;
-          outdated = [];
-
-          // Create a mapping of column names to their indices
-          const columnIndices: { [key: string]: number } = {};
-          head.forEach((columnName: string, index: number) => {
-            columnIndices[columnName.toLowerCase()] = index;
-          });
-
-          // Iterate over each package in the body
-          for (const row of body) {
-            const name = row[columnIndices['package']];
-            const current = row[columnIndices['current']];
-            const latest = row[columnIndices['latest']];
-            const type = row[columnIndices['package type']];
-
-            outdated.push({ name, type, current, latest });
-          }
-        } else {
-          // Yarn v2+
-          outdated = json;
-        }
-        if (!outdated || !Array.isArray(outdated)) {
-          continue;
-        }
-        for (const dependency of outdated) {
-          if (!dependency.current) {
-            throw new Error(
-              'Could not find current version. Did you run `yarn install`?',
-            );
-          }
-          const name = dependency.name;
-          if (this.packageVersionToDateCache[name] === undefined) {
-            const { stdout } = await exec(
-              'yarn',
-              ['npm', 'info', name, '--json', '--fields', 'time'],
-              {
-                cwd: project.path,
-              },
-            );
-            const packageInfo = JSON.parse(stdout);
-            this.packageVersionToDateCache[name] = packageInfo.time;
-            this.packageDeprecationCache[name] =
-              packageInfo.deprecated !== undefined;
-          }
-          let type;
-          try {
-            type = getDependencyType(dependency.type);
-          } catch (e) {
-            continue;
-          }
-          dependencies.push({
-            name,
-            ecosystem: 'NPM',
-            type,
-            current: {
-              version: dependency.current,
-              isDeprecated: false,
-              date: new Date(
-                this.packageVersionToDateCache[name][dependency.current],
-              ),
-            },
-            latest: {
-              version: dependency.latest,
-              isDeprecated: this.packageDeprecationCache[name],
-              date: new Date(
-                this.packageVersionToDateCache[name][dependency.latest],
-              ),
-            },
-          });
-        }
-        if (dependencies.length > 0) {
-          // If we have found some dependencies, we can break out of the loop
-          break;
-        }
+        dependencies.push({
+          name,
+          ecosystem: 'NPM',
+          type,
+          current: {
+            version: dependency.current,
+            isDeprecated: false,
+            date: new Date(
+              this.packageVersionToDateCache[name][dependency.current],
+            ),
+          },
+          latest: {
+            version: dependency.latest,
+            isDeprecated: this.packageDeprecationCache[name],
+            date: new Date(
+              this.packageVersionToDateCache[name][dependency.latest],
+            ),
+          },
+        });
       }
     } catch (error) {
       console.error('Error parsing yarn outdated output', error);
