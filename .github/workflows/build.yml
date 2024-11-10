@@ -1,10 +1,11 @@
 name: Build & Test
 permissions:
   contents: read
+  id-token: write
 on:
   pull_request:
   workflow_dispatch:
-  workflow_call: 
+  workflow_call:
 jobs:
   end-to-end-tests:
     runs-on: ${{ matrix.os }}
@@ -32,4 +33,22 @@ jobs:
       - run: pnpm install
       - run: pnpm build
       - run: pnpm test:unit
-     
+  publish-snapshot:
+    needs: [end-to-end-tests, unit-tests]
+    runs-on: 'ubuntu-latest'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install
+      - run: pnpm build
+      - run: npm version --no-git-tag-version "$(node -p "require('./package.json').version + '-snapshot.${GITHUB_RUN_NUMBER}'")"
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+      - uses: JS-DevTools/npm-publish@v3
+        with:
+          access: public
+          token: ${{ secrets.NPM_TOKEN }}
