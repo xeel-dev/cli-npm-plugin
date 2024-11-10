@@ -1,6 +1,6 @@
 import type { Project } from '@xeel-dev/cli/ecosystem-support';
 import { resolve } from 'node:path';
-import { exec, ExecError } from '../../utils/exec.js';
+import { exec } from '../../utils/exec.js';
 import { NpmDependency, PackageManagerSupport } from '../index.js';
 import { findDescription, getDependencyType } from './common.js';
 
@@ -190,6 +190,10 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
             },
           });
         }
+        if (dependencies.length > 0) {
+          // If we have found some dependencies, we can break out of the loop
+          break;
+        }
       }
     } catch (error) {
       console.error('Error parsing yarn outdated output', error);
@@ -198,11 +202,6 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
           await this.installOutdatedPlugin(project.path);
           return this.listOutdatedDependencies(project, true);
         }
-        throw new ExecError('yarn outdated --json --workspace .', {
-          exitCode,
-          stdout,
-          stderr,
-        });
       }
     }
     return dependencies;

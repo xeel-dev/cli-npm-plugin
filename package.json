@@ -1,6 +1,6 @@
 {
   "name": "@xeel-dev/cli-npm-plugin",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "NPM ecosystem plugin for Xeel CLI",
   "license": "MIT",
   "bugs": "https://github.com/xeel-dev/cli-npm-plugin/issues",
