@@ -93,40 +93,42 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
 
   private parseOutdatedOutput(outdatedOutput: string) {
     for (const line of outdatedOutput.split('\n')) {
-      let json = JSON.parse(line);
-      if (!json) {
-        continue;
-      }
-      let outdated;
-      if (json.type === 'table') {
-        console.log('Yarn v1 detected…');
-        // Yarn v1
-        const { head, body } = json.data;
-        outdated = [];
-
-        // Create a mapping of column names to their indices
-        const columnIndices: { [key: string]: number } = {};
-        head.forEach((columnName: string, index: number) => {
-          columnIndices[columnName.toLowerCase()] = index;
-        });
-
-        // Iterate over each package in the body
-        for (const row of body) {
-          const name = row[columnIndices['package']];
-          const current = row[columnIndices['current']];
-          const latest = row[columnIndices['latest']];
-          const type = row[columnIndices['package type']];
-
-          outdated.push({ name, type, current, latest });
+      try {
+        let json = JSON.parse(line);
+        if (!json) {
+          continue;
         }
-      } else {
-        // Yarn v2+
-        outdated = json;
-      }
-      if (!outdated || !Array.isArray(outdated)) {
-        continue;
-      }
-      return outdated;
+        let outdated;
+        if (json.type === 'table') {
+          console.log('Yarn v1 detected…');
+          // Yarn v1
+          const { head, body } = json.data;
+          outdated = [];
+
+          // Create a mapping of column names to their indices
+          const columnIndices: { [key: string]: number } = {};
+          head.forEach((columnName: string, index: number) => {
+            columnIndices[columnName.toLowerCase()] = index;
+          });
+
+          // Iterate over each package in the body
+          for (const row of body) {
+            const name = row[columnIndices['package']];
+            const current = row[columnIndices['current']];
+            const latest = row[columnIndices['latest']];
+            const type = row[columnIndices['package type']];
+
+            outdated.push({ name, type, current, latest });
+          }
+        } else {
+          // Yarn v2+
+          outdated = json;
+        }
+        if (!outdated || !Array.isArray(outdated)) {
+          continue;
+        }
+        return outdated;
+      } catch (error) {}
     }
     return [];
   }
@@ -197,7 +199,12 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
     } catch (error) {
       console.error('Error parsing yarn outdated output', error);
       if (exitCode !== 0) {
-        if (!hasAttemptedInstall) {
+        if (
+          !hasAttemptedInstall &&
+          stderr
+            .toString()
+            .includes('Couldn\'t find a script named "outdated".')
+        ) {
           await this.installOutdatedPlugin(project.path);
           return this.listOutdatedDependencies(project, true);
         }
