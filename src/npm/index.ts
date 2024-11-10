@@ -9,6 +9,7 @@ import { readdir } from 'fs/promises';
 import { readFileSync } from 'node:fs';
 import { exec } from '../utils/exec.js';
 import { Lockfiles, PackageManager } from './constants.js';
+import { parseJSON } from './package-manager/common.js';
 import { NpmPackageManagerSupport } from './package-manager/npm.js';
 import { PnpmPackageManagerSupport } from './package-manager/pnpm.js';
 import { YarnPackageManagerSupport } from './package-manager/yarn.js';
@@ -105,7 +106,7 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
           continue;
         }
 
-        const { name, description } = JSON.parse(
+        const { name, description } = parseJSON(
           readFileSync(packageJsonPath, 'utf-8'),
         );
         const packageManager =

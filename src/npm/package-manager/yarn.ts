@@ -2,7 +2,7 @@ import type { Project } from '@xeel-dev/cli/ecosystem-support';
 import { resolve } from 'node:path';
 import { exec } from '../../utils/exec.js';
 import { NpmDependency, PackageManagerSupport } from '../index.js';
-import { findDescription, getDependencyType } from './common.js';
+import { findDescription, getDependencyType, parseJSON } from './common.js';
 
 class YarnClassicPackageManagerSupport implements PackageManagerSupport {
   private packageVersionToDateCache: { [key: string]: string } = {};
@@ -20,7 +20,7 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
       console.warn('Could not find workspaces', { directoryPath });
       return [];
     }
-    const workspaces = JSON.parse(stdout.toString());
+    const workspaces = parseJSON(stdout.toString());
     return Object.entries(workspaces)
       .map(([name, workspace]) => {
         const workspaceInfo = workspace as { location: string };
@@ -45,7 +45,7 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
       const lines = output.split('\n');
       for (const line of lines) {
         try {
-          const json = JSON.parse(line);
+          const json = parseJSON(line);
           if (json.type === 'table') {
             const { head, body } = json.data;
 
@@ -101,7 +101,7 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
           const { stdout } = await exec('yarn', ['info', name, '--json'], {
             cwd: project.path,
           });
-          const { data: packageInfo } = JSON.parse(stdout);
+          const { data: packageInfo } = parseJSON(stdout);
           this.packageVersionToDateCache[name] = packageInfo.time;
           this.packageDeprecationCache[name] =
             packageInfo.deprecated !== undefined;
@@ -160,7 +160,7 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
       .toString()
       .split('\n')
       .filter((line) => line.trim() !== '')
-      .map((line) => JSON.parse(line) as { location: string; name: string })
+      .map((line) => parseJSON(line) as { location: string; name: string })
       .filter(({ location }) => location !== '.');
     // Yarn's CLI does not provide the workspace description
     return workspaces
@@ -206,7 +206,7 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
     const dependencies: NpmDependency[] = [];
     try {
       // If parsing fails, we try to install the outdated plugin
-      const outdated = JSON.parse(stdout.toString());
+      const outdated = parseJSON(stdout.toString());
       if (!outdated || !Array.isArray(outdated)) {
         return dependencies;
       }
@@ -225,7 +225,7 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
               cwd: project.path,
             },
           );
-          const packageInfo = JSON.parse(stdout);
+          const packageInfo = parseJSON(stdout);
           this.packageVersionToDateCache[name] = packageInfo.time;
           this.packageDeprecationCache[name] =
             packageInfo.deprecated !== undefined;
