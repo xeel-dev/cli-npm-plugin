@@ -9,6 +9,7 @@ import { readdir } from 'fs/promises';
 import { readFileSync } from 'node:fs';
 import { exec } from '../utils/exec.js';
 import { Lockfiles, PackageManager } from './constants.js';
+import { parseJSON } from './package-manager/common.js';
 import { NpmPackageManagerSupport } from './package-manager/npm.js';
 import { PnpmPackageManagerSupport } from './package-manager/pnpm.js';
 import { YarnPackageManagerSupport } from './package-manager/yarn.js';
@@ -43,8 +44,13 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
   ): Promise<Project<'NPM'>[]> {
     const support = this.managerSupport[packageManager];
     if (!support) {
-      throw new Error(`Unsupported package manager: ${packageManager}`);
+      console.error('Unsupported package manager!', {
+        packageManager,
+        directoryPath,
+      });
+      throw new Error(`Unsupported package manager!`);
     }
+    console.log('Finding workspaces in', directoryPath, 'with', packageManager);
     return support.findWorkspaces(directoryPath);
   }
 
@@ -61,7 +67,11 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
   ): Promise<NpmDependency[]> {
     const support = this.managerSupport[project.packageManager];
     if (!support) {
-      throw new Error(`Unsupported package manager: ${project.packageManager}`);
+      console.error(`Unsupported package manager!`, {
+        packageManager: project.packageManager,
+        directoryPath: project.path,
+      });
+      throw new Error(`Unsupported package manager!`);
     }
     const outdated = await support.listOutdatedDependencies(project);
     // Validate that all dependencies have all required fields, remove any that don't,
@@ -90,7 +100,9 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
       if (
         entry.isFile() &&
         (LOCKFILE_NAMES.includes(entry.name) ||
-          (allowNoLockfile && entry.name === 'package.json'))
+          (allowNoLockfile &&
+            entry.name === 'package.json' &&
+            directoryPath === process.cwd()))
       ) {
         // If there's a lockfile here, there may also be a package.json
         // load it in order to find the project's name
@@ -103,15 +115,16 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
           continue;
         }
 
-        const { name, description } = JSON.parse(
+        const packageDefinition = parseJSON(
           readFileSync(packageJsonPath, 'utf-8'),
         );
         const packageManager =
           Lockfiles[entry.name as keyof typeof Lockfiles] ?? 'npm';
 
         projects.push({
-          name,
-          description,
+          // Fall back to the directory name if the package.json doesn't have a name
+          name: packageDefinition.name ?? directoryPath.split('/').pop(),
+          description: packageDefinition.description,
           path: directoryPath,
           ecosystem: 'NPM',
           packageManager,
@@ -139,9 +152,8 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
     }
 
     if (projects.length === 0 && !allowNoLockfile) {
-      console.warn(
-        `No projects found in ${directoryPath}, checking without lockfile`,
-      );
+      // If no projects were found, and we're not allowing no lockfile, try again
+      // with the parent directory.
       return this.findProjects(directoryPath, true);
     }
 

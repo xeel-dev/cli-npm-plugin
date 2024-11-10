@@ -1,7 +1,7 @@
 import type { Project } from '@xeel-dev/cli/ecosystem-support';
 import { exec, ExecError } from '../../utils/exec.js';
 import { NpmDependency, PackageManagerSupport } from '../index.js';
-import { findDescription, getDependencyType } from './common.js';
+import { findDescription, getDependencyType, parseJSON } from './common.js';
 
 export class PnpmPackageManagerSupport implements PackageManagerSupport {
   public packageManager = 'pnpm' as const;
@@ -31,7 +31,7 @@ export class PnpmPackageManagerSupport implements PackageManagerSupport {
     if (outputString.match(/^\n/gm)) {
       outputString = outputString.split(/^\n/gm)[0];
     }
-    const workspaces = JSON.parse(outputString) as {
+    const workspaces = parseJSON(outputString) as {
       name: string;
       description: string;
       path: string;
@@ -60,7 +60,7 @@ export class PnpmPackageManagerSupport implements PackageManagerSupport {
     }
 
     // Outdated exits with a non-zero status code if there are outdated dependencies
-    const outdated = JSON.parse(stdout.toString());
+    const outdated = parseJSON(stdout.toString());
     for (const name in outdated) {
       if (!outdated[name].current) {
         throw new Error(
@@ -69,7 +69,7 @@ export class PnpmPackageManagerSupport implements PackageManagerSupport {
       }
       if (!this.packageVersionToDateCache[name]) {
         const { stdout } = await exec(`pnpm info ${name} --json`);
-        this.packageVersionToDateCache[name] = JSON.parse(stdout).time;
+        this.packageVersionToDateCache[name] = parseJSON(stdout).time;
       }
       let type;
       try {
