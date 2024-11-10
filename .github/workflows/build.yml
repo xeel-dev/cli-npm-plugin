@@ -34,6 +34,7 @@ jobs:
       - run: pnpm build
       - run: pnpm test:unit
   publish-snapshot:
+    if: github.ref != 'refs/heads/main'
     needs: [end-to-end-tests, unit-tests]
     runs-on: 'ubuntu-latest'
     steps:
