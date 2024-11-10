@@ -44,7 +44,11 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
   ): Promise<Project<'NPM'>[]> {
     const support = this.managerSupport[packageManager];
     if (!support) {
-      throw new Error(`Unsupported package manager: ${packageManager}`);
+      console.error('Unsupported package manager!', {
+        packageManager,
+        directoryPath,
+      });
+      throw new Error(`Unsupported package manager!`);
     }
     return support.findWorkspaces(directoryPath);
   }
@@ -62,7 +66,11 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
   ): Promise<NpmDependency[]> {
     const support = this.managerSupport[project.packageManager];
     if (!support) {
-      throw new Error(`Unsupported package manager: ${project.packageManager}`);
+      console.error(`Unsupported package manager!`, {
+        packageManager: project.packageManager,
+        directoryPath: project.path,
+      });
+      throw new Error(`Unsupported package manager!`);
     }
     const outdated = await support.listOutdatedDependencies(project);
     // Validate that all dependencies have all required fields, remove any that don't,
@@ -106,15 +114,16 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
           continue;
         }
 
-        const { name, description } = parseJSON(
+        const packageDefinition = parseJSON(
           readFileSync(packageJsonPath, 'utf-8'),
         );
         const packageManager =
           Lockfiles[entry.name as keyof typeof Lockfiles] ?? 'npm';
 
         projects.push({
-          name,
-          description,
+          // Fall back to the directory name if the package.json doesn't have a name
+          name: packageDefinition.name ?? directoryPath.split('/').pop(),
+          description: packageDefinition.description,
           path: directoryPath,
           ecosystem: 'NPM',
           packageManager,

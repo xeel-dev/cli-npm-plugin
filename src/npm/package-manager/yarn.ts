@@ -1,14 +1,14 @@
 import type { Project } from '@xeel-dev/cli/ecosystem-support';
 import { resolve } from 'node:path';
 import { exec } from '../../utils/exec.js';
-import { NpmDependency, PackageManagerSupport } from '../index.js';
+import { NpmDependency, NpmProject, PackageManagerSupport } from '../index.js';
 import { findDescription, getDependencyType, parseJSON } from './common.js';
 
 class YarnClassicPackageManagerSupport implements PackageManagerSupport {
   private packageVersionToDateCache: { [key: string]: string } = {};
   private packageDeprecationCache: { [key: string]: boolean } = {};
 
-  async findWorkspaces(directoryPath: string): Promise<Project<'NPM'>[]> {
+  async findWorkspaces(directoryPath: string): Promise<NpmProject[]> {
     const { exitCode, stdout } = await exec(
       'yarn',
       ['workspaces', 'info', '--json'],
@@ -16,13 +16,10 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
         cwd: directoryPath,
       },
     );
-    if (exitCode !== 0) {
-      console.warn('Could not find workspaces', { directoryPath });
+    if (exitCode !== 0 || !stdout) {
       return [];
     }
-    // Drop the first line, which is the version of the workspaces feature
-    // And the last line, which is the "✨ Done in 0.00s." line
-    const jsonOutput = stdout.toString().split('\n').slice(1, -1).join('\n');
+    const jsonOutput = stdout.toString().split('\n').slice(1, -2).join('\n');
     const workspaces = parseJSON(jsonOutput);
     return Object.entries(workspaces)
       .map(([name, workspace]) => {
@@ -35,10 +32,11 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
           name,
           ecosystem: 'NPM' as const,
           path,
+          packageManager: 'yarn' as const,
         };
         return findDescription(project);
       })
-      .filter((workspace): workspace is Project<'NPM'> => workspace !== null);
+      .filter((workspace): workspace is NpmProject => workspace !== null);
   }
 
   private parseYarnOutdatedOutput(output: string) {
@@ -48,6 +46,9 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
       const lines = output.split('\n');
       for (const line of lines) {
         try {
+          if (!line) {
+            continue;
+          }
           const json = parseJSON(line);
           if (json.type === 'table') {
             const { head, body } = json.data;
@@ -64,13 +65,22 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
               const current = row[columnIndices['current']];
               const latest = row[columnIndices['latest']];
               const type = row[columnIndices['package type']];
-
-              packages.push({ name, type, current, latest });
+              if (!name || !current || !latest || !type) {
+                console.warn('Invalid row in outdated data:', row);
+                continue;
+              }
+              if (columnIndices['workspace'] !== undefined) {
+                const workspace = row[columnIndices['workspace']];
+                packages.push({ name, type, current, latest, workspace });
+              } else {
+                packages.push({ name, type, current, latest });
+              }
             }
           }
         } catch (error) {}
       }
     } catch (error) {
+      console.log(output);
       console.error('Error parsing yarn outdated output', error);
       return null;
     }
@@ -99,20 +109,63 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
             'Could not find current version. Did you run `yarn install`?',
           );
         }
+        if (dependency.workspace !== undefined) {
+          // Not current workspace
+          if (dependency.workspace !== project.name) {
+            // Not root workspace
+            if (
+              // This is a root workspace, only root workspaces can be "nameless"
+              (dependency.workspace === '' && 'subProjects' in project) ===
+              false
+            ) {
+              continue;
+            }
+          }
+        }
         const name = dependency.name;
         if (this.packageVersionToDateCache[name] === undefined) {
-          const { stdout } = await exec('yarn', ['info', name, '--json'], {
-            cwd: project.path,
-          });
-          const { data: packageInfo } = parseJSON(stdout);
-          this.packageVersionToDateCache[name] = packageInfo.time;
-          this.packageDeprecationCache[name] =
-            packageInfo.deprecated !== undefined;
+          const { stdout, exitCode } = await exec(
+            'yarn',
+            ['info', name, '--json'],
+            {
+              cwd: project.path,
+            },
+          );
+          if (exitCode !== 0) {
+            console.warn(`Could not find release dates for ${name}`);
+            continue;
+          }
+          for (const line of stdout.toString().split('\n')) {
+            if (!line) {
+              continue;
+            }
+            try {
+              const json = parseJSON(line);
+              if (json.type !== 'inspect') {
+                continue;
+              }
+              const packageInfo = json.data;
+              this.packageVersionToDateCache[name] = packageInfo.time;
+              this.packageDeprecationCache[name] =
+                packageInfo.deprecated !== undefined;
+            } catch (error) {
+              console.warn(`Could not find release dates for ${name}`, {
+                error,
+                stdout,
+              });
+              continue;
+            }
+          }
         }
         let type;
         try {
           type = getDependencyType(dependency.type);
         } catch (e) {
+          continue;
+        }
+        const releases = this.packageVersionToDateCache[name];
+        if (!releases) {
+          console.warn(`Could not find release dates for ${name}`);
           continue;
         }
         dependencies.push({
@@ -122,16 +175,12 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
           current: {
             version: dependency.current,
             isDeprecated: false,
-            date: new Date(
-              this.packageVersionToDateCache[name][dependency.current],
-            ),
+            date: new Date(releases[dependency.current] ?? 0),
           },
           latest: {
             version: dependency.latest,
             isDeprecated: this.packageDeprecationCache[name],
-            date: new Date(
-              this.packageVersionToDateCache[name][dependency.latest],
-            ),
+            date: new Date(releases[dependency.latest] ?? 0),
           },
         });
       }
@@ -146,7 +195,7 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
   private packageVersionToDateCache: { [key: string]: string } = {};
   private packageDeprecationCache: { [key: string]: boolean } = {};
 
-  async findWorkspaces(directoryPath: string): Promise<Project<'NPM'>[]> {
+  async findWorkspaces(directoryPath: string): Promise<NpmProject[]> {
     const { exitCode, stdout } = await exec(
       'yarn',
       ['workspaces', 'list', '--json'],
@@ -173,7 +222,7 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
         ecosystem: 'NPM' as const,
         packageManager: 'yarn' as const,
       }))
-      .map(findDescription);
+      .map(findDescription) as NpmProject[];
   }
 
   private async installOutdatedPlugin(path: string) {
