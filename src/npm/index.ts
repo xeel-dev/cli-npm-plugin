@@ -80,11 +80,18 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
     return validatedOutdated;
   }
 
-  async findProjects(directoryPath = process.cwd()): Promise<NpmProject[]> {
+  async findProjects(
+    directoryPath = process.cwd(),
+    allowNoLockfile = false,
+  ): Promise<NpmProject[]> {
     const entries = await readdir(directoryPath, { withFileTypes: true });
     const projects: NpmProject[] = [];
     for (const entry of entries) {
-      if (entry.isFile() && LOCKFILE_NAMES.includes(entry.name)) {
+      if (
+        entry.isFile() &&
+        (LOCKFILE_NAMES.includes(entry.name) ||
+          (allowNoLockfile && entry.name === 'package.json'))
+      ) {
         // If there's a lockfile here, there may also be a package.json
         // load it in order to find the project's name
         const packageJsonPath = `${directoryPath}/package.json`;
@@ -99,7 +106,8 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
         const { name, description } = JSON.parse(
           readFileSync(packageJsonPath, 'utf-8'),
         );
-        const packageManager = Lockfiles[entry.name as keyof typeof Lockfiles];
+        const packageManager =
+          Lockfiles[entry.name as keyof typeof Lockfiles] ?? 'npm';
 
         projects.push({
           name,
@@ -128,6 +136,13 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
           ...(await this.findProjects(`${directoryPath}/${entry.name}`)),
         );
       }
+    }
+
+    if (projects.length === 0 && !allowNoLockfile) {
+      console.warn(
+        `No projects found in ${directoryPath}, checking without lockfile`,
+      );
+      return this.findProjects(directoryPath, true);
     }
 
     return projects;
