@@ -72,7 +72,9 @@ export class NpmPackageManagerSupport implements PackageManagerSupport {
         ? info
         : ([info] as NpmOutdatedVersion[]);
       if (this.packageVersionToDateCache[name] === undefined) {
-        const { stdout } = await exec(`npm info ${name} --json`);
+        // Split the name by : to get the package name, if it's an alias
+        let packageName = name.includes(':') ? name.split(':')[1] : name;
+        const { stdout } = await exec(`npm info ${packageName} --json`);
         const packageInfo = parseJSON(stdout);
         this.packageVersionToDateCache[name] = packageInfo.time;
         this.packageDeprecationCache[name] =

@@ -50,6 +50,7 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
       });
       throw new Error(`Unsupported package manager!`);
     }
+    console.log('Finding workspaces in', directoryPath, 'with', packageManager);
     return support.findWorkspaces(directoryPath);
   }
 
