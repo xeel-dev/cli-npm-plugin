@@ -26,6 +26,7 @@
     "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "oclif manifest",
     "start": "./bin/dev.js",
+    "test": "pnpm test:unit && pnpm test:e2e",
     "test:unit": "vitest run --config vitest.config.unit.ts",
     "test:e2e": "node ./src/npm/package-manager/__tests__/run-e2e-setup.js && vitest run --config vitest.config.e2e.ts"
   },
