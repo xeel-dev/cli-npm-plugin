@@ -101,7 +101,7 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
           const { stdout } = await exec('yarn', ['info', name, '--json'], {
             cwd: project.path,
           });
-          const packageInfo = JSON.parse(stdout);
+          const { data: packageInfo } = JSON.parse(stdout);
           this.packageVersionToDateCache[name] = packageInfo.time;
           this.packageDeprecationCache[name] =
             packageInfo.deprecated !== undefined;
