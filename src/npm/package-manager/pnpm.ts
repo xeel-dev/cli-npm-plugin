@@ -64,7 +64,9 @@ export class PnpmPackageManagerSupport implements PackageManagerSupport {
     for (const name in outdated) {
       if (!outdated[name].current) {
         throw new Error(
-          'Could not find current version. Did you run `pnpm install`?',
+          'Could not find current version. Did you run `pnpm install`?' +
+            ' Package: ' +
+            name,
         );
       }
       if (!this.packageVersionToDateCache[name]) {
