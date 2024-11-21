@@ -310,16 +310,9 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
       }
     } catch (error) {
       console.error('Error parsing yarn outdated output', error);
-      if (exitCode !== 0) {
-        if (
-          !hasAttemptedInstall &&
-          stderr
-            .toString()
-            .includes('Couldn\'t find a script named "outdated".')
-        ) {
-          await this.installOutdatedPlugin(project.path);
-          return this.listOutdatedDependencies(project, true);
-        }
+      if (exitCode !== 0 && !hasAttemptedInstall) {
+        await this.installOutdatedPlugin(project.path);
+        return this.listOutdatedDependencies(project, true);
       }
     }
     return dependencies;
