@@ -106,7 +106,9 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
       for (const dependency of outdated) {
         if (!dependency.current) {
           throw new Error(
-            'Could not find current version. Did you run `yarn install`?',
+            'Could not find current version. Did you run `yarn install`?' +
+              ' Package: ' +
+              dependency.name,
           );
         }
         if (dependency.workspace !== undefined) {
@@ -265,7 +267,9 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
       for (const dependency of outdated) {
         if (!dependency.current) {
           throw new Error(
-            'Could not find current version. Did you run `yarn install`?',
+            'Could not find current version. Did you run `yarn install`?' +
+              ' Package: ' +
+              dependency.name,
           );
         }
         const name = dependency.name;

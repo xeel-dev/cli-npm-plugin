@@ -62,9 +62,11 @@ export class PnpmPackageManagerSupport implements PackageManagerSupport {
     // Outdated exits with a non-zero status code if there are outdated dependencies
     const outdated = parseJSON(stdout.toString());
     for (const name in outdated) {
-      if (!outdated[name].current) {
+      if (!outdated[name].current && !outdated[name].wanted) {
         throw new Error(
-          'Could not find current version. Did you run `pnpm install`?',
+          'Could not find current version. Did you run `pnpm install`?' +
+            ' Package: ' +
+            name,
         );
       }
       if (!this.packageVersionToDateCache[name]) {
@@ -81,10 +83,12 @@ export class PnpmPackageManagerSupport implements PackageManagerSupport {
       dependencies.push({
         name,
         current: {
-          version: outdated[name].current,
+          version: outdated[name].current ?? outdated[name].wanted,
           isDeprecated: false,
           date: new Date(
-            this.packageVersionToDateCache[name][outdated[name].current],
+            this.packageVersionToDateCache[name][
+              outdated[name].current ?? outdated[name].wanted
+            ],
           ),
         },
         latest: {

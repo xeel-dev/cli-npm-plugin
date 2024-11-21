@@ -100,9 +100,7 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
       if (
         entry.isFile() &&
         (LOCKFILE_NAMES.includes(entry.name) ||
-          (allowNoLockfile &&
-            entry.name === 'package.json' &&
-            directoryPath === process.cwd()))
+          (allowNoLockfile && entry.name === 'package.json'))
       ) {
         // If there's a lockfile here, there may also be a package.json
         // load it in order to find the project's name
@@ -151,7 +149,11 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
       }
     }
 
-    if (projects.length === 0 && !allowNoLockfile) {
+    if (
+      projects.length === 0 &&
+      !allowNoLockfile &&
+      directoryPath === process.cwd()
+    ) {
       // If no projects were found, and we're not allowing no lockfile, try again
       // with the parent directory.
       return this.findProjects(directoryPath, true);
