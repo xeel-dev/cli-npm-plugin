@@ -90,7 +90,7 @@ class YarnClassicPackageManagerSupport implements PackageManagerSupport {
   async listOutdatedDependencies(
     project: Project<'NPM'>,
   ): Promise<NpmDependency[]> {
-    const { exitCode, stdout, stderr } = await exec(
+    const { stdout } = await exec(
       'yarn',
       ['outdated', '--json', '--workspace', '.'],
       {
@@ -250,7 +250,7 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
     project: Project<'NPM'>,
     hasAttemptedInstall?: boolean,
   ): Promise<NpmDependency[]> {
-    const { exitCode, stdout, stderr } = await exec(
+    const { stdout } = await exec(
       'yarn',
       ['outdated', '--json', '--workspace', '.'],
       {
@@ -261,6 +261,12 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
     try {
       // If parsing fails, we try to install the outdated plugin
       const outdated = parseJSON(stdout.toString());
+      if (outdated === null) {
+        if (!hasAttemptedInstall) {
+          await this.installOutdatedPlugin(project.path);
+          return this.listOutdatedDependencies(project, true);
+        }
+      }
       if (!outdated || !Array.isArray(outdated)) {
         return dependencies;
       }
@@ -314,17 +320,6 @@ class YarnBerryPackageManagerSupport implements PackageManagerSupport {
       }
     } catch (error) {
       console.error('Error parsing yarn outdated output', error);
-      if (exitCode !== 0) {
-        if (
-          !hasAttemptedInstall &&
-          stderr
-            .toString()
-            .includes('Couldn\'t find a script named "outdated".')
-        ) {
-          await this.installOutdatedPlugin(project.path);
-          return this.listOutdatedDependencies(project, true);
-        }
-      }
     }
     return dependencies;
   }
