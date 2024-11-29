@@ -90,6 +90,17 @@ export default class NpmEcosystemSupport implements EcosystemSupport<'NPM'> {
     return validatedOutdated;
   }
 
+  async countDependencies(project: Project<'NPM'>): Promise<number> {
+    const { path } = project;
+    const packageJsonPath = `${path}/package.json`;
+    const packageDefinition = parseJSON(readFileSync(packageJsonPath, 'utf-8'));
+    const dependencies = packageDefinition.dependencies ?? {};
+    const devDependencies = packageDefinition.devDependencies ?? {};
+    return (
+      Object.keys(dependencies).length + Object.keys(devDependencies).length
+    );
+  }
+
   async findProjects(
     directoryPath = process.cwd(),
     allowNoLockfile = false,
