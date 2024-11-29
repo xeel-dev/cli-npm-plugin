@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/xeel-dev/cli-npm-plugin/compare/v1.0.0...v1.1.0) (2024-11-29)
+
+
+### Features
+
+* add support for `countDependencies` ([ab914bb](https://github.com/xeel-dev/cli-npm-plugin/commit/ab914bb808a21ade0dfb2ac762a8ea2947bc0b0e))
+
 ## 1.0.0 (2024-11-24)
 
 
