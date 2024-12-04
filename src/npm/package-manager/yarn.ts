@@ -329,20 +329,22 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
   public packageManager = 'yarn' as const;
   private classicSupport = new YarnClassicPackageManagerSupport();
   private berrySupport = new YarnBerryPackageManagerSupport();
-  private yarnVersion: string | undefined;
+  private versions: { [key: string]: string } = {};
 
-  async isClassic() {
-    if (this.yarnVersion === undefined) {
+  async isClassic(directoryPath: string) {
+    if (this.versions[directoryPath] === undefined) {
       // Run yarn --version to determine if we're using Yarn 1 or 2+
-      const { stdout } = await exec('yarn --version');
-      this.yarnVersion = stdout.toString().split('.')[0];
-      console.log(`Detected Yarn version: ${this.yarnVersion}`);
+      const { stdout } = await exec('yarn', ['--version'], {
+        cwd: directoryPath,
+      });
+      this.versions[directoryPath] = stdout.toString().trim().split('.')[0];
+      console.log(`Detected Yarn version: ${this.versions[directoryPath]}`);
     }
-    return this.yarnVersion === '1';
+    return this.versions[directoryPath] === '1';
   }
 
   async findWorkspaces(directoryPath: string): Promise<Project<'NPM'>[]> {
-    if (await this.isClassic()) {
+    if (await this.isClassic(directoryPath)) {
       return this.classicSupport.findWorkspaces(directoryPath);
     }
     return this.berrySupport.findWorkspaces(directoryPath);
@@ -351,7 +353,7 @@ export class YarnPackageManagerSupport implements PackageManagerSupport {
   async listOutdatedDependencies(
     project: Project<'NPM'>,
   ): Promise<NpmDependency[]> {
-    if (await this.isClassic()) {
+    if (await this.isClassic(project.path)) {
       return this.classicSupport.listOutdatedDependencies(project);
     }
     return this.berrySupport.listOutdatedDependencies(project);
