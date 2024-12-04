@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/xeel-dev/cli-npm-plugin/compare/v1.1.0...v1.1.1) (2024-12-04)
+
+
+### Bug Fixes
+
+* **yarn:** fix yarn version detection ([cf0cb2d](https://github.com/xeel-dev/cli-npm-plugin/commit/cf0cb2dfb7b643bd09ed9575b02955c665198698))
+
 ## [1.1.0](https://github.com/xeel-dev/cli-npm-plugin/compare/v1.0.0...v1.1.0) (2024-11-29)
 
 
